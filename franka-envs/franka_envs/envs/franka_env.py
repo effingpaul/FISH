@@ -57,6 +57,7 @@ class FrankaEnv(gym.Env):
 		if self.enable_camera:
 			# Realsense Camera
 			self.cam = Camera(width=self.width, height=self.height, view=self.camera_view)
+		print("hall")
 	
 	def init_arm(self):
 		self.arm = Franka(home_displacement=self.home_displacement, keep_gripper_closed=self.keep_gripper_closed, highest_start=self.highest_start, 
@@ -97,7 +98,7 @@ class FrankaEnv(gym.Env):
 		obs['pixels'] = self.render(mode='rgb_array', width=self.width, height=self.height)
 
 		self.reward = self.get_reward()
-
+		
 		return obs, self.reward, done, info
 
 	def arm_refresh(self, reset=True):

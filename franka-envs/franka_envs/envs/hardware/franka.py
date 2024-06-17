@@ -3,7 +3,7 @@ import time
 import numpy as np
 import random
 from configparser import ConfigParser
-import utils
+from franka_envs.utils import quatPoseToPRYPose, PRYPoseToQuatPose
 import robotic as ry
 
 class Franka:
@@ -40,13 +40,15 @@ class Franka:
 	def start_robot(self):
 		if self.ip is None:
 			raise Exception('IP not provided.')
-
+		
+		
 		# Create Configuration
 		self.C = ry.Config()
 		self.C.addFile(ry.raiPath('scenarios/pandaSingle.g'))
 		self.C.addFrame('target')
 		self.C.view(False)
-		this.bot = ry.BotOp(C, useRealRobot=this.useRealRobot)
+		self.bot = ry.BotOp(self.C, useRealRobot=self.useRealRobot)
+
 		#if self.arm.error_code != 0:
 		#	self.arm.clean_error()
 		#self.set_mode_and_state()
@@ -93,22 +95,22 @@ class Franka:
 		# if open_gripper and not self.keep_gripper_closed:
 		# 	self.open_gripper_fully()
 
-	def IK(C, pos):
+	def IK(self, C, pos):
 		# set target to pos and quat
 		pos = PRYPoseToQuatPose(pos)
 		self.C.getFrame('target').setPosition(pos[:2]).setQuaternion(pos[3:])
 
 		# create komo problem to calculate joint configuration
 		q0 = C.getJointState()
-    	komo = ry.KOMO(C, 1, 1, 0, False) #one phase one time slice problem, with 'delta_t=1', order=0
-    	komo.addObjective([], ry.FS.jointState, [], ry.OT.sos, [1e-1], q0) #cost: close to 'current state'
+		komo = ry.KOMO(self.C, 1, 1, 0, False) #one phase one time slice problem, with 'delta_t=1', order=0
+		komo.addObjective([], ry.FS.jointState, [], ry.OT.sos, [1e-1], q0) #cost: close to 'current state'
     	# komo.addObjective([], ry.FS.jointState, [], ry.OT.sos, [1e-1], qHome) #cost: close to qHome
-    	komo.addObjective([1.], ry.FS.positionDiff, ['l_gripper', 'target'], ry.OT.eq, [1e1]) #constraint: gripper position
+		komo.addObjective([1.], ry.FS.positionDiff, ['l_gripper', 'target'], ry.OT.eq, [1e1]) #constraint: gripper position
 		komo.addObjective({1.}, ry.FS_quaternionDiff, {"l_gripper", "target"}, ry.OT_eq, {1e1}); # contraint: gripper orientation
+		
+		ret = ry.NLP_Solver(komo.nlp(), verbose=0).solve()
+		return [komo.getPath()[0], ret]
 
-    	ret = ry.NLP_Solver(komo.nlp(), verbose=0) .solve()
-    	return [komo.getPath()[0], ret]
-	
 	def set_random_pos(self):
 		self.clear_errors()
 		self.set_mode_and_state()
@@ -149,9 +151,9 @@ class Franka:
 		yaw = pos[5] if use_yaw else self.yaw
 
 		# 
-		q = IK(self.C, pos)
-		self.bot.moveTo(q, {1.}, true)
-        self.bot.sync(self.C, 0)
+		q = self.IK(self.C, pos)
+		self.bot.moveTo(q, {1.}, True)
+		self.bot.sync(self.C, 0)
 
 		#self.arm.set_position(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw, wait=wait)
 
@@ -202,8 +204,8 @@ class Franka:
 		'''
 		angles: List of length 6
 		'''
-		self.bot.moveTo(angles, {1.}, true)
-        self.bot.sync(self.C, 0)
+		self.bot.moveTo(angles, {1.}, True)
+		self.bot.sync(self.C, 0)
 	
 	def limit_pos(self, pos):
 		pos[0] = max(self.x_limit[0], pos[0])

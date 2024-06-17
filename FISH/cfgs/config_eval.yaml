@@ -5,12 +5,12 @@ defaults:
   - override hydra/launcher: submitit_local
 
 # Root Dir
-root_dir: '/home/paul/Documents/Robotics Project/FISH'
+root_dir: '/home/paul/Documents/Robotics_Project/FISH'
 
 nstep: 3
 # misc
 seed: 2
-device: cuda
+device: cpu #cuda
 save_video: true
 # save_train_video: false
 use_tb: true

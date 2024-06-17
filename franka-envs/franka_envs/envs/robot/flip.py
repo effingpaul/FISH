@@ -144,8 +144,8 @@ class FrankaFlipEnv(franka_env.FrankaEnv):
 		x = (pos[0] + self.arm.zero[0])*100
 		y = (pos[1] + self.arm.zero[1])*100
 		z = (pos[2] + self.arm.zero[2])*100
-		self.arm.arm.set_position(x=x, y=y, z=z, roll=pos[3], pitch=pos[4], yaw=pos[5], wait=wait)
-		#self.arm.set_position(pos=pos, wait=wait)
+		#self.arm.arm.set_position(x=x, y=y, z=z, roll=pos[3], pitch=pos[4], yaw=pos[5], wait=wait)
+		self.arm.set_position(pos=pos, wait=wait)
 
 	def limit_pos(self, pos):
 		if pos[2] <= self.z_pos_limit:

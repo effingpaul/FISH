@@ -16,7 +16,8 @@ dependencies:
   - pip:
     - protobuf==3.20.1
     - termcolor==1.1.0
-    - git+https://github.com/openai/mujoco-py
+    #- git+https://github.com/openai/mujoco-py
+    - mujoco-py<2.2,>=2.1
     - dm_control
     - gym==0.22.0
     # - git+https://github.com/rlworkgroup/metaworld.git@master#egg=metaworld

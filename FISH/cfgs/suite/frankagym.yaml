@@ -34,7 +34,7 @@ task_make_fn:
   seed: ${seed}
   enable_arm: true
   enable_gripper: false
-  enable_camera: true
+  enable_camera: false
   x_limit: ${x_limit}
   y_limit: ${y_limit}
   z_limit: ${z_limit}

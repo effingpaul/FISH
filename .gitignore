@@ -135,5 +135,7 @@ FISH/expert_demos
 
 # logs
 z.log.global
+FISH/exp_local
+exp_local
 
 FISH/cuda-repo-ubuntu2004-12-5-local_12.5.0-555.42.02-1_amd64.deb
