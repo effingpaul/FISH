@@ -5,7 +5,7 @@ defaults:
   - override hydra/launcher: submitit_local
 
 # Root Dir
-root_dir: '/path/to/dir/FISH'
+root_dir: '/home/paul/Documents/Robotics Project/FISH'
 
 nstep: 3
 # misc

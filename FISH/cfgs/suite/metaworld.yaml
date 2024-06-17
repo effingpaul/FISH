@@ -1,8 +1,7 @@
 # @package suite
 defaults:
   - _self_
-  - metaworld_task@_global_: drawer_close
-
+  - metaworld_task@_global_: drawer_close #drawer_close
 suite: metaworld
 
 name: 'metaworld'
@@ -11,18 +10,18 @@ name: 'metaworld'
 frame_stack: 3 # 1 for vinn, 3 for everything else
 action_repeat: 2
 discount: 0.99
-hidden_dim: 1024
+hidden_dim: 1024 # 1024
 
 # train settings
 num_train_frames: 2100000
-num_seed_frames: 12000
+num_seed_frames: 12000 # 12000
 
 # eval
-eval_every_frames: 20000
-num_eval_episodes: 10
+eval_every_frames: 20000 #20000
+num_eval_episodes: 10 #10
 
 # snapshot
-save_snapshot: true
+save_snapshot: false #true
 
 task_make_fn:
   _target_: suite.metaworld.make

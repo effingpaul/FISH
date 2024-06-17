@@ -25,4 +25,4 @@ bc_weight_type: ${bc_weight_type}
 bc_weight_schedule: 'linear(1.0,0.1,20000)'
 pretrained: False
 offset_scale_factor: 0.2
-offset_mask: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
+offset_mask: [1, 1, 1, 1] # [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0] 
