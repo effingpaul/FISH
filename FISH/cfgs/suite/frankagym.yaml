@@ -41,3 +41,5 @@ task_make_fn:
   pitch: ${pitch}
   roll: ${roll}
   keep_gripper_closed: ${keep_gripper_closed}
+  use_real_robot: true
+  execute_step_wise: true

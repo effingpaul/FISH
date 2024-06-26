@@ -4,6 +4,7 @@ from gym import spaces
 import cv2
 import numpy as np
 import time
+import pickle
 
 from pygame import init
 
@@ -13,7 +14,7 @@ from franka_envs.envs.hardware.franka import Franka
 class FrankaEnv(gym.Env):
 	def __init__(self, home_displacement=[2,-0.21,.4], height=84, width=84, step_size=10, enable_arm=True, enable_gripper=True, enable_camera=True,
 				 camera_view='side', use_depth=False, keep_gripper_closed=False, highest_start=False, 
-				 x_limit=None, y_limit=None, z_limit=None, yaw_limit=None, pitch=0, roll=180, yaw=0, goto_zero_at_init=False, start_at_the_back=False, **kwargs):
+				 x_limit=None, y_limit=None, z_limit=None, yaw_limit=None, pitch=0, roll=180, yaw=0, goto_zero_at_init=False, start_at_the_back=False,use_real_robot=False, execute_step_wise=True,**kwargs):
 		super(FrankaEnv, self).__init__()
 		self.height = height
 		self.width = width
@@ -34,6 +35,9 @@ class FrankaEnv(gym.Env):
 		self.yaw = yaw
 		self.goto_zero_at_init = goto_zero_at_init
 		self.start_at_the_back = start_at_the_back
+		self.use_real_robot = use_real_robot
+		self.execute_step_wise = execute_step_wise
+		self.step_number = 0
 		
 		if self.use_depth:
 			self.n_channels = 4
@@ -57,12 +61,18 @@ class FrankaEnv(gym.Env):
 		if self.enable_camera:
 			# Realsense Camera
 			self.cam = Camera(width=self.width, height=self.height, view=self.camera_view)
-		print("hall")
+		else: 
+			# load images from the expert trajectory dataset that is pickled 
+			with open("/home/paul/Documents/Robotics_Project/FISH/FISH/expert_demos/frankagym/FrankaFlipBagel-v1/expert_demos.pkl", 'rb') as f:
+				self.expertObservations, _, self.expertLabels, _ = pickle.load(f)
+				with open("/home/paul/Documents/Robotics_Project/FISH/FISH/expert_demos/frankagym/FrankaFlipBagel-v1/quatPoses.pkl", 'rb') as f:
+					self.expertQuatPoses = pickle.load(f)
+
 	
 	def init_arm(self):
 		self.arm = Franka(home_displacement=self.home_displacement, keep_gripper_closed=self.keep_gripper_closed, highest_start=self.highest_start, 
 						x_limit=self.x_limit, y_limit=self.y_limit, z_limit=self.z_limit, yaw_limit=self.yaw_limit, pitch=self.pitch, roll=self.roll,
-						yaw=self.yaw, start_at_the_back=self.start_at_the_back)
+						yaw=self.yaw, start_at_the_back=self.start_at_the_back, use_real_robot=self.use_real_robot, execute_step_wise=self.execute_step_wise)
 		self.arm.start_robot()
 		self.arm.clear_errors()
 		self.arm.set_mode_and_state()
@@ -85,6 +95,7 @@ class FrankaEnv(gym.Env):
 				time.sleep(0.2)
 
 		if self.enable_arm:
+			# this is where the movement happens
 			self.arm.set_position(new_pos)
 			time.sleep(0.4)
 
@@ -98,6 +109,7 @@ class FrankaEnv(gym.Env):
 		obs['pixels'] = self.render(mode='rgb_array', width=self.width, height=self.height)
 
 		self.reward = self.get_reward()
+		self.step_number += 1
 		
 		return obs, self.reward, done, info
 
@@ -117,13 +129,28 @@ class FrankaEnv(gym.Env):
 		obs = {}
 		obs['features'] = np.array(self.arm.get_position(), dtype=np.float32)
 		obs['pixels'] = self.render(mode='rgb_array', width=self.width, height=self.height)
+
+		self.step_number = 0
 		return obs
 
-	def render(self, mode='rgb_array', width=84, height=84):
+	def render(self, mode='rgb_array', width=84, height=84, step_number=0):
 		if not self.enable_camera:
-			return np.random.rand(height, width, self.n_channels)
+			# reorgnaize first iage to be in the correct format height x width x channels
+			img = np.transpose(self.expertObservations[0][step_number], (1,2,0))
+			
+			print("at step: ", step_number)
+			return img
+		
+
+			#return np.random.rand(height, width, self.n_channels)
 		obs = self.cam.get_frame()
 		return obs[:,:,:self.n_channels]
+	
+	def get_expert_label(self, step_number):
+		return self.expertLabels[0][step_number]
+
+		# use this to give expert quaternion poses
+		# return self.expertQuatPoses[step_number]
 
 	def get_reward(self):
 		pass

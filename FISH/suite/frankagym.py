@@ -291,11 +291,11 @@ class ExtendedTimeStepWrapper(dm_env.Environment):
 		return getattr(self._env, name)
 
 
-def make(name, height, width, frame_stack, action_repeat, seed, enable_arm, enable_gripper, enable_camera, x_limit, y_limit, z_limit, pitch, roll, keep_gripper_closed, **kwargs):
+def make(name, height, width, frame_stack, action_repeat, seed, enable_arm, enable_gripper, enable_camera, x_limit, y_limit, z_limit, pitch, roll, keep_gripper_closed, use_real_robot, execute_step_wise, **kwargs):
 	env = gym.make(name, height=height, width=width, enable_arm=enable_arm, enable_gripper=enable_gripper, enable_camera=enable_camera, 
-				   x_limit=x_limit, y_limit=y_limit, z_limit=z_limit, pitch=pitch, roll=roll, keep_gripper_closed=keep_gripper_closed, **kwargs)
+				   x_limit=x_limit, y_limit=y_limit, z_limit=z_limit, pitch=pitch, roll=roll, keep_gripper_closed=keep_gripper_closed, use_real_robot=use_real_robot, execute_step_wise=execute_step_wise, **kwargs)
 	env.seed(seed)
-	
+
 	# add wrappers
 	env = RGBArrayAsObservationWrapper(env, width=224, height=224)
 	env = ActionDTypeWrapper(env, np.float32)

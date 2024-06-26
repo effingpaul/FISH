@@ -133,6 +133,9 @@ dmypy.json
 # expert demo data
 FISH/expert_demos
 
+#weights
+FISH/weights
+
 # logs
 z.log.global
 FISH/exp_local
