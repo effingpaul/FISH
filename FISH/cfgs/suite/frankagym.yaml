@@ -34,7 +34,7 @@ task_make_fn:
   seed: ${seed}
   enable_arm: true
   enable_gripper: false
-  enable_camera: false
+  enable_camera: true
   x_limit: ${x_limit}
   y_limit: ${y_limit}
   z_limit: ${z_limit}
@@ -42,4 +42,4 @@ task_make_fn:
   roll: ${roll}
   keep_gripper_closed: ${keep_gripper_closed}
   use_real_robot: true
-  execute_step_wise: true
+  execute_step_wise: false

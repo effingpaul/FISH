@@ -53,6 +53,9 @@ class Franka:
 		self.bot = ry.BotOp(self.C, useRealRobot=self.use_real_robot)
 		self.qHome = self.C.getJointState()
 
+		# close gripper if not closed alreadz
+		self.open_gripper_fully()
+
 		if self.execute_step_wise:
 			# Create Dummy Configuration
 			self.simC = ry.Config()
@@ -101,8 +104,11 @@ class Franka:
 				self.open_gripper_fully()
 
 	def move_to_home(self, open_gripper=False):
-		# self.bot.home(self.C)
-		print("no home rn")
+		self.bot.home(self.C)
+		print("actual home pose", self.C.getFrame("l_gripper").getPosition(), self.C.getFrame("l_gripper").getQuaternion())
+		# this shoudl be home : [0.00197139, 0.275992, 1.26491] [-0.77925, -0.199869, 0.144179, -0.576224]
+
+		# print("no home rn")
 		# pos = self.get_position()
 		# pos[0] = self.home[0]
 		# pos[1] = self.home[1]
@@ -214,7 +220,7 @@ class Franka:
 
 	def open_gripper_fully(self):
 		#self.set_gripper_position(self.gripper_max_open)
-		self.bot.gripperMove(ry._left, width=.075)
+		self.bot.gripperMove(ry._left, width=.07)
 
 
 	def close_gripper_fully(self):
@@ -260,3 +266,7 @@ class Franka:
 			pos[5] = max(self.yaw_limit[0], pos[5])
 			pos[5] = min(self.yaw_limit[1], pos[5])
 		return pos
+	
+	def get_image(self):
+		image, depth, points = self.bot.getImageDepthPcl("l_gripper")
+		return image

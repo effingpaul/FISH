@@ -70,7 +70,7 @@ class RGBArrayAsObservationWrapper(dm_env.Environment):
 	def action_spec(self):
 		return self._action_spec
 
-	def render(self, mode="rgb_array", width=256, height=256):
+	def render(self, mode="rgb_array", width=84, height=84):
 		return self._env.render(mode="rgb_array", width=width, height=height)
 
 	def __getattr__(self, name):
@@ -297,7 +297,7 @@ def make(name, height, width, frame_stack, action_repeat, seed, enable_arm, enab
 	env.seed(seed)
 
 	# add wrappers
-	env = RGBArrayAsObservationWrapper(env, width=224, height=224)
+	env = RGBArrayAsObservationWrapper(env, width=width, height=height)
 	env = ActionDTypeWrapper(env, np.float32)
 	env = ActionRepeatWrapper(env, action_repeat)
 	env = FrameStackWrapper(env, frame_stack)

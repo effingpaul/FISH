@@ -37,4 +37,4 @@ dependencies:
     - git+https://github.com/xArm-Developer/xArm-Python-SDK.git
     - pyrealsense2
     - byol-pytorch
-    - robotic # added for franka panda code
+    #- robotic # added for franka panda code

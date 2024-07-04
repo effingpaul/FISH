@@ -5,7 +5,7 @@ defaults:
   - override hydra/launcher: submitit_local
 
 # Root Dir
-root_dir: '/home/paul/Documents/Robotics_Project/FISH'
+root_dir: '/home/quim/paul/Robotics_Project/FISH'
 
 # replay buffer
 replay_buffer_size: 150000
@@ -29,7 +29,7 @@ num_demos: 1
 expert_dataset: '${root_dir}/FISH/expert_demos/${suite.name}/${task_name}/expert_demos.pkl'
 
 # Load weights
-load_bc: false
+load_bc: true
 # Weights
 bc_weight: '${root_dir}/FISH/weights/${suite.name}_${obs_type}/${task_name}/bc.pt'
 

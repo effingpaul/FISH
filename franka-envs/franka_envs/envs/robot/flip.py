@@ -86,7 +86,7 @@ class FrankaFlipEnv(franka_env.FrankaEnv):
 		time.sleep(0.4)		
 		obs = {}
 		obs['features'] = np.array(self.arm.get_position(), dtype=np.float32)
-		obs['pixels'] = self.render(mode='rgb_array', width=self.width, height=self.height)
+		obs['pixels'] = self.render(mode='rgb_array', width=self.width, height=self.height, step_number=0)
 		return obs
 
 	def get_random_pos(self, pos=None):
@@ -127,7 +127,7 @@ class FrankaFlipEnv(franka_env.FrankaEnv):
 
 		# TODO: these three have to be chked for necessaity and then moved to the config
 		use_quaternion = True
-		tau = 0.25
+		tau = 0.5
 		use_fixed_move_time = True
 
 		new_pos = self.arm.get_position(use_quaternion=use_quaternion)
@@ -152,9 +152,10 @@ class FrankaFlipEnv(franka_env.FrankaEnv):
 
 
 		# use this to directlz execute quaternion poses
-		exp_action = self.get_expert_label(self.step_number)
+		# exp_action = self.get_expert_label(self.step_number)
+
 		
-		print("expert action: ", exp_action)
+		# print("expert action: ", exp_action)
 		# new_pos = action
 		
 
@@ -183,17 +184,21 @@ class FrankaFlipEnv(franka_env.FrankaEnv):
 		obs = {}
 		obs['features'] = np.array(self.arm.get_position(), dtype=np.float32)
 		obs['pixels'] = self.render(mode='rgb_array', width=self.width, height=self.height, step_number=self.step_number)
+		print(obs['pixels'].shape)
 		self.step_number += 1
 
 		if self.execute_step_wise:
-			# display the newly obtained rendered image in a window and wait for user input
-			# scale the whole obs array to be an int within 0 and 255 for cv2
+			# display the newly obtained rendered image in a window and wait for user input2
 			if len(obs['pixels'].shape) == 3:
-				obs['pixels'] = np.array(obs['pixels'], dtype=np.uint8)
+				# obs['pixels'] = np.array(obs['pixels'], dtype=np.uint8)
+				print("shape of obs", obs["pixels"].shape)
 				cv2.imshow('image', obs['pixels'])
 				cv2.waitKey(0)
 
 				cv2.destroyAllWindows()
+
+
+
 
 
 		return obs, self.reward, done, info

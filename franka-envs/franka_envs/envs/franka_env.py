@@ -59,8 +59,13 @@ class FrankaEnv(gym.Env):
 			self.init_arm()
 
 		if self.enable_camera:
+			print("no external camera needed")
+			import cv2
+
+			self.cap = cv2.VideoCapture(10)
+
 			# Realsense Camera
-			self.cam = Camera(width=self.width, height=self.height, view=self.camera_view)
+			# self.cam = Camera(width=self.width, height=self.height, view=self.camera_view)
 		else: 
 			# load images from the expert trajectory dataset that is pickled 
 			with open("/home/paul/Documents/Robotics_Project/FISH/FISH/expert_demos/frankagym/FrankaFlipBagel-v1/expert_demos.pkl", 'rb') as f:
@@ -134,16 +139,39 @@ class FrankaEnv(gym.Env):
 		return obs
 
 	def render(self, mode='rgb_array', width=84, height=84, step_number=0):
+		print("at step: ", step_number)
 		if not self.enable_camera:
 			# reorgnaize first iage to be in the correct format height x width x channels
 			img = np.transpose(self.expertObservations[0][step_number], (1,2,0))
 			
-			print("at step: ", step_number)
+
+			
 			return img
 		
 
 			#return np.random.rand(height, width, self.n_channels)
-		obs = self.cam.get_frame()
+		# obs = self.arm.get_image()
+		# obs = cv2.resize(obs, (width, height))
+
+
+		if self.cap.isOpened():
+			ret, frame = self.cap.read()
+			if ret:
+				obs = frame
+			
+		# Release everything if job is finished
+		# self.cap.release()
+		
+		# obs = self.cam.get_frame()
+		#crop image to be quadratic
+		if min(obs.shape[0], obs.shape[1]) != obs.shape[0]:
+			cutoff = (obs.shape[0] - obs.shape[1]) // 2
+			obs = obs[cutoff:-cutoff, :]
+		if min(obs.shape[0], obs.shape[1]) != obs.shape[1]:
+			cutoff = (obs.shape[1] - obs.shape[0]) // 2
+			obs = obs[:, cutoff:-cutoff]
+        # rescale images to height and width
+		obs = cv2.resize(obs, (width, height))
 		return obs[:,:,:self.n_channels]
 	
 	def get_expert_label(self, step_number):
