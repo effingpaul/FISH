@@ -5,7 +5,7 @@ defaults:
   - override hydra/launcher: submitit_local
 
 # Root Dir
-root_dir: '/home/quim/paul/Robotics_Project/FISH'
+root_dir: '/home/paul/Documents/Robotics_Project/FISH'
 
 # replay buffer
 replay_buffer_size: 150000

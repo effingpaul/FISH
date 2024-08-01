@@ -4,13 +4,16 @@ import numpy as np
 import random
 from configparser import ConfigParser
 from franka_envs.utils import quatPoseToPRYPose, PRYPoseToQuatPose
+from franka_envs.envs.hardware.franka_request import FrankaRequestNode
 import robotic as ry
+
 
 class Franka:
 
 	def __init__(self, config_file='./franka.conf', home_displacement = (0,0.276,1.266), low_range=(0.2,0.2,0.1) , high_range=(0.4,0.4,0.2),
 				 keep_gripper_closed=False, highest_start=False, x_limit=None, y_limit=None, z_limit=None, yaw_limit=None,
-				 pitch = 0, roll=180, yaw=0, gripper_action_scale=200, start_at_the_back=False, use_real_robot=False, execute_step_wise=True):
+				 pitch = 0, roll=180, yaw=0, gripper_action_scale=200, start_at_the_back=False, use_real_robot=False, execute_step_wise=True, qHome = None,
+				 use_external_robot_system = False, external_ip_address = "0.0.0.0",):
 		self.gripper_max_open = 800
 		self.gripper_min_open = 0
 		self.zero = (206/100,0/100,120.5/100)	# Units: .1 meters 
@@ -20,13 +23,14 @@ class Franka:
 		self.low_range = low_range
 		self.high_range = high_range
 		self.joint_limits = None
-		self.ip = '192.168.1.246'
 		self.gripper_action_scale = gripper_action_scale
 		self.start_at_the_back = start_at_the_back
 		self.use_real_robot = use_real_robot
 		self.execute_step_wise = execute_step_wise
+		self.use_external_robot_system=use_external_robot_system
+		self.external_ip_address=external_ip_address
 
-		self.qHome = 0
+		self.qHome = qHome
 
 		# Limits
 		self.x_limit = [-0.3, 0.3] if x_limit is None else x_limit
@@ -41,31 +45,30 @@ class Franka:
 
 
 	def start_robot(self):
-		if self.ip is None:
-			raise Exception('IP not provided.')
-		
-		
-		# Create Configuration
-		self.C = ry.Config()
-		self.C.addFile(ry.raiPath('scenarios/pandaSingle.g'))
-		self.C.addFrame('target')
-		self.C.view(False)
-		self.bot = ry.BotOp(self.C, useRealRobot=self.use_real_robot)
-		self.qHome = self.C.getJointState()
 
-		# close gripper if not closed alreadz
-		self.open_gripper_fully()
+		if self.use_external_robot_system:
+			self.external_bot = FrankaRequestNode(self.external_ip_address)
+			return
+		else:
+			# Create Configuration
+			self.C = ry.Config()
+			self.C.addFile(ry.raiPath('scenarios/pandaSingle.g'))
+			self.C.addFrame('target')
+			self.C.view(False)
+			self.bot = ry.BotOp(self.C, useRealRobot=self.use_real_robot)
+			if self.qHome is None:
+				self.qHome = self.C.getJointState()
 
-		if self.execute_step_wise:
-			# Create Dummy Configuration
-			self.simC = ry.Config()
-			self.simC.addFile(ry.raiPath('scenarios/pandaSingle.g'))
-			self.simC.view(False)
-			self.simBot = ry.BotOp(self.simC, useRealRobot=False)
+			if self.execute_step_wise:
+				# Create Dummy Configuration
+				self.simC = ry.Config()
+				self.simC.addFile(ry.raiPath('scenarios/pandaSingle.g'))
+				self.simC.view(False)
+				self.simBot = ry.BotOp(self.simC, useRealRobot=False)
 
-		#if self.arm.error_code != 0:
-		#	self.arm.clean_error()
-		#self.set_mode_and_state()
+			#if self.arm.error_code != 0:
+			#	self.arm.clean_error()
+			#self.set_mode_and_state()
 
 	def set_mode_and_state(self, mode=0, state=0):
 		# TODO
@@ -80,8 +83,9 @@ class Franka:
 		#self.arm.clean_error()
 
 	def clear(self):
-		del self.C
-		del self.bot
+		if not self.use_external_robot_system:
+			del self.C
+			del self.bot
 
 		if self.execute_step_wise:
 			del self.simBot
@@ -104,18 +108,32 @@ class Franka:
 				self.open_gripper_fully()
 
 	def move_to_home(self, open_gripper=False):
-		self.bot.home(self.C)
-		print("actual home pose", self.C.getFrame("l_gripper").getPosition(), self.C.getFrame("l_gripper").getQuaternion())
-		# this shoudl be home : [0.00197139, 0.275992, 1.26491] [-0.77925, -0.199869, 0.144179, -0.576224]
 
-		# print("no home rn")
-		# pos = self.get_position()
-		# pos[0] = self.home[0]
-		# pos[1] = self.home[1]
-		# pos[2] = self.home[2]
-		# self.set_position(pos)
-		# if open_gripper and not self.keep_gripper_closed:
-		# 	self.open_gripper_fully()
+		if self.use_external_robot_system:
+			self.external_bot.send_home_command(self.qHome)
+			return
+		else:
+			# move to the home position specified by qHome
+			self.bot.moveTo(self.qHome, 0.2, True)
+
+			while (self.bot.getTimeToEnd()>0.) :
+				self.bot.sync(self.C,0)
+			self.bot.sync(self.C, 0)
+
+			if open_gripper and not self.keep_gripper_closed:
+				self.open_gripper_fully()
+
+			print("actual home pose", self.C.getFrame("l_gripper").getPosition(), self.C.getFrame("l_gripper").getQuaternion())
+			# this shoudl be home : [0.00197139, 0.275992, 1.26491] [-0.77925, -0.199869, 0.144179, -0.576224]
+
+			# print("no home rn")
+			# pos = self.get_position()
+			# pos[0] = self.home[0]
+			# pos[1] = self.home[1]
+			# pos[2] = self.home[2]
+			# self.set_position(pos)
+			# if open_gripper and not self.keep_gripper_closed:
+			# 	self.open_gripper_fully()
 
 	def IK(self, C, pos, use_quaternion=False):
 		# set target to pos and quat
@@ -168,6 +186,7 @@ class Franka:
 		self.set_position(pos)
 
 	def set_position(self, pos, wait=False, use_roll=False, use_pitch=False, use_yaw=False, use_quaternion=False, tau=None):
+
 		pos = self.limit_pos(pos)
 		# x = (pos[0] + self.zero[0])*100
 		# y = (pos[1] + self.zero[1])*100
@@ -175,40 +194,48 @@ class Franka:
 		roll = pos[3] if use_roll else self.roll
 		pitch = pos[4] if use_pitch else self.pitch
 		yaw = pos[5] if use_yaw else self.yaw
-
 		print("desired pos: ", pos)
-		q = self.IK(self.C, pos, use_quaternion=use_quaternion)
 
-		# if step wise execution is on we have to show the movement in a simulation window first
-		if self.execute_step_wise:
-			
-			# move to position
-			self.simBot.moveTo(q, 2., True)
-			self.simBot.sync(self.C, 0)
-			# wait for user input
-			input("Press Enter to continue...")
-
-
-		if tau is None:
-			self.bot.moveTo(q, 1., True)
+		if self.use_external_robot_system:
+			self.external_bot.send_set_position_command(pos)
+			return
 		else:
-			self.bot.move([q], [tau], False) #True
-		self.bot.sync(self.C, 0)
+			q = self.IK(self.C, pos, use_quaternion=use_quaternion)
 
-		#self.arm.set_position(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw, wait=wait)
+			# if step wise execution is on we have to show the movement in a simulation window first
+			if self.execute_step_wise:
+
+				# move to position
+				self.simBot.moveTo(q, 2., True)
+				self.simBot.sync(self.C, 0)
+				# wait for user input
+				input("Press Enter to continue...")
+
+
+			if tau is None:
+				self.bot.moveTo(q, 1., True)
+			else:
+				self.bot.move([q], [tau], False) #True
+			self.bot.sync(self.C, 0)
+
+			#self.arm.set_position(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw, wait=wait)
 
 	def get_position(self, use_quaternion=False):
 
-		self.bot.sync(self.C, 0)
-		#pos = self.arm.get_position()[1]
-		position = self.C.getFrame('l_gripper').getPosition()
-		quaternion = self.C.getFrame('l_gripper').getQuaternion()
-		pos = [position[0], position[1], position[2], quaternion[0], quaternion[1], quaternion[2], quaternion[3]]
+		if self.use_external_robot_system:
+			pos = self.external_bot.send_get_position_command()
+			print("pos received form external bot: ", pos)
+		else:
+
+			self.bot.sync(self.C, 0)
+			#pos = self.arm.get_position()[1]
+			position = self.C.getFrame('l_gripper').getPosition()
+			quaternion = self.C.getFrame('l_gripper').getQuaternion()
+			pos = [position[0], position[1], position[2], quaternion[0], quaternion[1], quaternion[2], quaternion[3]]
 
 		if use_quaternion:
 			return pos
 		pos = quatPoseToPRYPose(pos)
-
 		# x = (pos[0]/100.0 - self.zero[0])
 		# y = (pos[1]/100.0 - self.zero[1])
 		# z = (pos[2]/100.0 - self.zero[2])
@@ -219,13 +246,21 @@ class Franka:
 		return 0
 
 	def open_gripper_fully(self):
-		#self.set_gripper_position(self.gripper_max_open)
-		self.bot.gripperMove(ry._left, width=.07)
+		if self.use_external_robot_system:
+			self.external_bot.send_open_gripper_fully_command()
+			return
+		else:
+			#self.set_gripper_position(self.gripper_max_open)
+			self.bot.gripperMove(ry._left, width=.07)
 
 
 	def close_gripper_fully(self):
-		#self.set_gripper_position(self.gripper_min_open)
-		self.bot.gripperMove(ry._left, width=.01)
+		if self.use_external_robot_system:
+			self.external_bot.send_close_gripper_fully_command()
+			return
+		else:
+			#self.set_gripper_position(self.gripper_min_open)
+			self.bot.gripperMove(ry._left, width=.003)
 
 	def open_gripper(self):
 		# TODO
@@ -268,5 +303,9 @@ class Franka:
 		return pos
 	
 	def get_image(self):
-		image, depth, points = self.bot.getImageDepthPcl("l_gripper")
-		return image
+		if self.use_external_robot_system:
+			#TODO
+			return
+		else:
+			image, depth, points = self.bot.getImageDepthPcl("l_gripper")
+			return image

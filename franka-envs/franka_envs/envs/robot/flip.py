@@ -11,7 +11,8 @@ import numpy as np
 
 class FrankaFlipEnv(franka_env.FrankaEnv):
 	def __init__(self, height=84, width=84, step_size=10, enable_arm=True, enable_gripper=True, enable_camera=True, camera_view='side',
-				 use_depth=False, dist_threshold=0.05, random_start=True, x_limit=None, y_limit=None, z_limit=None, pitch=0, roll=136, keep_gripper_closed=True, goto_zero_at_init=False, use_real_robot=False, execute_step_wise=True):
+				 use_depth=False, dist_threshold=0.05, random_start=True, x_limit=None, y_limit=None, z_limit=None, pitch=0, roll=136, keep_gripper_closed=True,
+				   goto_zero_at_init=False, use_real_robot=False, execute_step_wise=True, qHome=None, use_external_robot_system=False, external_ip_address="0.0.0.0",  **kwargs):
 		franka_env.FrankaEnv.__init__(
 			self,
 			home_displacement=[1.7, 1.20, 1.82],
@@ -32,7 +33,10 @@ class FrankaFlipEnv(franka_env.FrankaEnv):
 			roll=roll,
 			goto_zero_at_init=goto_zero_at_init,
 			use_real_robot=use_real_robot,
-			execute_step_wise=execute_step_wise
+			execute_step_wise=execute_step_wise,
+			qHome = qHome,
+			use_external_robot_system=use_external_robot_system,
+			external_ip_address=external_ip_address
 		)
 		self.action_space = spaces.Box(low = np.array([-1,-1,-1, -1, -1, -1, -1],dtype=np.float32), 
 									   high = np.array([1, 1, 1, 1, 1, 1, 1],dtype=np.float32),

@@ -5,9 +5,10 @@ defaults:
 task_name: FrankaFlipBagel-v1
 num_train_frames_bc: 1000
 num_train_frames_vinn: 200
+qHome: [-0.276413, 0.251156, -0.393057, -1.67559, 0.630542, 1.55408, 0.0252891]
 pitch: 0
 roll: 136
 x_limit : [-0.3, 0.3]
 y_limit : [0.0, 0.7]
 z_limit: [0.8, 1.4]
-keep_gripper_closed: false
+keep_gripper_closed: true

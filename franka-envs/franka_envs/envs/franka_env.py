@@ -14,7 +14,8 @@ from franka_envs.envs.hardware.franka import Franka
 class FrankaEnv(gym.Env):
 	def __init__(self, home_displacement=[2,-0.21,.4], height=84, width=84, step_size=10, enable_arm=True, enable_gripper=True, enable_camera=True,
 				 camera_view='side', use_depth=False, keep_gripper_closed=False, highest_start=False, 
-				 x_limit=None, y_limit=None, z_limit=None, yaw_limit=None, pitch=0, roll=180, yaw=0, goto_zero_at_init=False, start_at_the_back=False,use_real_robot=False, execute_step_wise=True,**kwargs):
+				 x_limit=None, y_limit=None, z_limit=None, yaw_limit=None, pitch=0, roll=180, yaw=0, goto_zero_at_init=False, start_at_the_back=False,use_real_robot=False, execute_step_wise=True,
+				  qHome= None, use_external_robot_system = False, external_ip_address = "0.0.0.0", **kwargs):
 		super(FrankaEnv, self).__init__()
 		self.height = height
 		self.width = width
@@ -38,6 +39,9 @@ class FrankaEnv(gym.Env):
 		self.use_real_robot = use_real_robot
 		self.execute_step_wise = execute_step_wise
 		self.step_number = 0
+		self.qHome = qHome
+		self.use_external_robot_system=use_external_robot_system
+		self.external_ip_address=external_ip_address
 		
 		if self.use_depth:
 			self.n_channels = 4
@@ -62,8 +66,14 @@ class FrankaEnv(gym.Env):
 			print("no external camera needed")
 			import cv2
 
-			self.cap = cv2.VideoCapture(10)
+			self.cap = cv2.VideoCapture(4) # 4 or 10
+			print("cam opened", self.cap.isOpened())
 
+
+			print("warmup camera")
+			for i in range(10):
+				self.render(mode='rgb_array', width=self.width, height=self.height)
+				time.sleep(0.1)
 			# Realsense Camera
 			# self.cam = Camera(width=self.width, height=self.height, view=self.camera_view)
 		else: 
@@ -77,7 +87,8 @@ class FrankaEnv(gym.Env):
 	def init_arm(self):
 		self.arm = Franka(home_displacement=self.home_displacement, keep_gripper_closed=self.keep_gripper_closed, highest_start=self.highest_start, 
 						x_limit=self.x_limit, y_limit=self.y_limit, z_limit=self.z_limit, yaw_limit=self.yaw_limit, pitch=self.pitch, roll=self.roll,
-						yaw=self.yaw, start_at_the_back=self.start_at_the_back, use_real_robot=self.use_real_robot, execute_step_wise=self.execute_step_wise)
+						yaw=self.yaw, start_at_the_back=self.start_at_the_back, use_real_robot=self.use_real_robot, execute_step_wise=self.execute_step_wise,
+						 use_external_robot_system=self.use_external_robot_system, external_ip_address=self.external_ip_address, qHome=self.qHome)
 		self.arm.start_robot()
 		self.arm.clear_errors()
 		self.arm.set_mode_and_state()
@@ -135,6 +146,7 @@ class FrankaEnv(gym.Env):
 		obs['features'] = np.array(self.arm.get_position(), dtype=np.float32)
 		obs['pixels'] = self.render(mode='rgb_array', width=self.width, height=self.height)
 
+
 		self.step_number = 0
 		return obs
 
@@ -150,7 +162,8 @@ class FrankaEnv(gym.Env):
 		
 
 			#return np.random.rand(height, width, self.n_channels)
-		# obs = self.arm.get_image()
+		# o
+		# bs = self.arm.get_image()
 		# obs = cv2.resize(obs, (width, height))
 
 
@@ -159,19 +172,23 @@ class FrankaEnv(gym.Env):
 			if ret:
 				obs = frame
 			
-		# Release everything if job is finished
-		# self.cap.release()
-		
-		# obs = self.cam.get_frame()
-		#crop image to be quadratic
-		if min(obs.shape[0], obs.shape[1]) != obs.shape[0]:
-			cutoff = (obs.shape[0] - obs.shape[1]) // 2
-			obs = obs[cutoff:-cutoff, :]
-		if min(obs.shape[0], obs.shape[1]) != obs.shape[1]:
-			cutoff = (obs.shape[1] - obs.shape[0]) // 2
-			obs = obs[:, cutoff:-cutoff]
-        # rescale images to height and width
-		obs = cv2.resize(obs, (width, height))
+			# Release everything if job is finished
+			# self.cap.release()
+
+			# obs = self.cam.get_frame()
+			#crop image to be quadratic
+			if min(obs.shape[0], obs.shape[1]) != obs.shape[0]:
+				cutoff = (obs.shape[0] - obs.shape[1]) // 2
+				obs = obs[cutoff:-cutoff, :]
+			if min(obs.shape[0], obs.shape[1]) != obs.shape[1]:
+				cutoff = (obs.shape[1] - obs.shape[0]) // 2
+				obs = obs[:, cutoff:-cutoff]
+
+			# zoom in image onto center
+			cutoff = (obs.shape[0]) // 6
+			obs = obs[cutoff:-cutoff, cutoff:-cutoff]
+        	# rescale images to height and width
+			obs = cv2.resize(obs, (width, height))
 		return obs[:,:,:self.n_channels]
 	
 	def get_expert_label(self, step_number):
