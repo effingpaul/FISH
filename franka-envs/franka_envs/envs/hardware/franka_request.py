@@ -5,15 +5,16 @@ import numpy as np
 
 class FrankaRequestNode:
     def __init__(self, address: str="localhost"):
-        self.address = "tcp://" + address + ":69420"
+        self.address = "tcp://" + address + ":11111"
         context = zmq.Context()
         self.socket = context.socket(zmq.REQ)
         self.socket.connect(self.address)
+        print("connected to ", "tcp://" + address + ":11111")
 
     def send_request(self,
             message: str,
             data: np.ndarray,
-            verbose: int=0):
+            verbose: int=1):
 
         input = np.array({"command": message, "data": data})
 
@@ -43,7 +44,7 @@ class FrankaRequestNode:
 
     def send_close_gripper_fully_command(self):
         # This function sends the robot a command to close the gripper fully
-        self.send_request("GRIPPER", 0.003)
+        self.send_request("GRIPPER", 0.008)
         return
 
     def send_open_gripper_fully_command(self):
@@ -59,8 +60,10 @@ class FrankaRequestNode:
             print ("No new position given, abondaning move to new position")
             return
 
-        self.send_request("MOVE", new_pos)
-        return
+        reply = self.send_request("MOVE", new_pos)
+        if reply['status'] == 'torque limit exceeded':
+            return False
+        return True
     
     def send_get_position_command(self):
         # This function sends the robot a command to get the current position

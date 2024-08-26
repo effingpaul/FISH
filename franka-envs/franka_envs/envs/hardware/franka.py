@@ -5,7 +5,6 @@ import random
 from configparser import ConfigParser
 from franka_envs.utils import quatPoseToPRYPose, PRYPoseToQuatPose
 from franka_envs.envs.hardware.franka_request import FrankaRequestNode
-import robotic as ry
 
 
 class Franka:
@@ -50,6 +49,8 @@ class Franka:
 			self.external_bot = FrankaRequestNode(self.external_ip_address)
 			return
 		else:
+			import robotic as ry
+
 			# Create Configuration
 			self.C = ry.Config()
 			self.C.addFile(ry.raiPath('scenarios/pandaSingle.g'))
@@ -197,8 +198,7 @@ class Franka:
 		print("desired pos: ", pos)
 
 		if self.use_external_robot_system:
-			self.external_bot.send_set_position_command(pos)
-			return
+			return self.external_bot.send_set_position_command(pos)
 		else:
 			q = self.IK(self.C, pos, use_quaternion=use_quaternion)
 
@@ -217,6 +217,7 @@ class Franka:
 			else:
 				self.bot.move([q], [tau], False) #True
 			self.bot.sync(self.C, 0)
+			return True
 
 			#self.arm.set_position(x=x, y=y, z=z, roll=roll, pitch=pitch, yaw=yaw, wait=wait)
 
@@ -260,7 +261,7 @@ class Franka:
 			return
 		else:
 			#self.set_gripper_position(self.gripper_min_open)
-			self.bot.gripperMove(ry._left, width=.003)
+			self.bot.gripperMove(ry._left, width=.008)
 
 	def open_gripper(self):
 		# TODO

@@ -7,9 +7,10 @@ import time
 import pickle
 
 from pygame import init
-
 from franka_envs.envs.hardware.camera import Camera
 from franka_envs.envs.hardware.franka import Franka
+		
+
 
 class FrankaEnv(gym.Env):
 	def __init__(self, home_displacement=[2,-0.21,.4], height=84, width=84, step_size=10, enable_arm=True, enable_gripper=True, enable_camera=True,
@@ -42,7 +43,6 @@ class FrankaEnv(gym.Env):
 		self.qHome = qHome
 		self.use_external_robot_system=use_external_robot_system
 		self.external_ip_address=external_ip_address
-		
 		if self.use_depth:
 			self.n_channels = 4
 		else:
@@ -68,6 +68,7 @@ class FrankaEnv(gym.Env):
 
 			self.cap = cv2.VideoCapture(4) # 4 or 10
 			print("cam opened", self.cap.isOpened())
+			self.cap.set(38,1)
 
 
 			print("warmup camera")
@@ -168,6 +169,8 @@ class FrankaEnv(gym.Env):
 
 
 		if self.cap.isOpened():
+			ret, frame = self.cap.read()
+			# override buffered frame
 			ret, frame = self.cap.read()
 			if ret:
 				obs = frame

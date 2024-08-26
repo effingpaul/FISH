@@ -3,7 +3,7 @@ _target_: agent.potil_vinn_offset.POTILAgent
 obs_shape: ??? # to be specified later
 action_shape: ??? # to be specified later
 device: ${device}
-lr: 1e-4
+lr: 1e-4 # 1-e4
 critic_target_tau: 0.01
 update_every_steps: 2
 use_tb: ${use_tb}
@@ -24,5 +24,5 @@ encoder_type: ${encoder_type}
 bc_weight_type: ${bc_weight_type}
 bc_weight_schedule: 'linear(1.0,0.1,20000)'
 pretrained: False
-offset_scale_factor: 0.2
-offset_mask: [1, 1, 1, 1] # Key Insertion - [0.3, 1, 0], Bagel - [0, 0, 1, 0, 0, 0], PegInCup - [1, 1, 0], MetaWorld envs - [1, 1, 1, 1]
+offset_scale_factor: 0.008
+offset_mask: [1, 1, 1, 0, 0, 0, 0] # [1, 1, 1, 1] # Key Insertion - [0.3, 1, 0], Bagel - [0, 0, 1, 0, 0, 0], PegInCup - [1, 1, 0], MetaWorld envs - [1, 1, 1, 1]

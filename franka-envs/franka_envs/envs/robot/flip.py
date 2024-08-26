@@ -57,8 +57,8 @@ class FrankaFlipEnv(franka_env.FrankaEnv):
 
 
 
-		self.amin = np.array([-0.005417199999999997, -0.0043680000000000385, -0.005689999999999973, -5.066925490872517 ,-2.1016945376923317 ,-6.599694925074768  ])
-		self.amax = np.array([0.0132467, 0.00965499999999997, 0.002778000000000058, 0.9899210406374692, 2.902934758408099, 2.6491223307038965  ])
+		self.amin = np.array([-0.04, -0.04, -0.04, 0.996, -0.08, -0.08, -0.08])
+		self.amax = np.array([0.04, 0.04, 0.04, 1.0, 0.08, 0.08, 0.08 ])
 
 		self.posmin = np.array([-0.143946, 0.275992, 0.912367, -15.931071325442407, -27.144403233550914, -12.343664422404952 ])
 		self.posmax = np.array([0.0940041, 0.532463, 1.29168, 70.79504930395238, 81.03868707608807, 71.8365138061432  ])
@@ -70,6 +70,9 @@ class FrankaFlipEnv(franka_env.FrankaEnv):
 		self.diff = self.amax - self.amin
 		self.posdiff = self.posmax - self.posmin
 
+		self.keep_replaying = False
+		self.replay_obs = None
+
 	def arm_refresh(self, reset=True):
 		self.arm.clear_errors()
 		self.arm.set_mode_and_state()
@@ -78,6 +81,7 @@ class FrankaFlipEnv(franka_env.FrankaEnv):
 		time.sleep(2)
 
 	def reset(self):
+		self.keep_replaying = False
 		if not self.enable_arm:
 			return np.array([0,0,0], dtype=np.float32)
 		self.arm_refresh(reset=True)
@@ -131,15 +135,22 @@ class FrankaFlipEnv(franka_env.FrankaEnv):
 
 		# TODO: these three have to be chked for necessaity and then moved to the config
 		use_quaternion = True
-		tau = 0.5
+		tau = 1.8
 		use_fixed_move_time = True
 
 		new_pos = self.arm.get_position(use_quaternion=use_quaternion)
 		print("current pos: ", new_pos)
 		print("action: ", action)
 
+		done = False
+
 		action = action # * self.posdiff # + self.amin
-		print("action upscaled: ", action)
+
+		# bound action to be within amin and amax
+		if use_quaternion:
+			action = np.clip(action, self.amin, self.amax)
+
+		print("action upscaled and bounded: ", action)
 
 		# to treplay the expert trajectory
 		# action = self.get_expert_label(self.step_number) # * self.posdiff
@@ -161,35 +172,50 @@ class FrankaFlipEnv(franka_env.FrankaEnv):
 		
 		# print("expert action: ", exp_action)
 		# new_pos = action
+
+		torques_Exceeded = False
 		
+		if not self.keep_replaying:
+		
+			if self.enable_arm:
+				if use_fixed_move_time:
+					result = self.set_position(new_pos, False, use_quaternion, tau)
+				else:
+					result = self.set_position(new_pos, False, use_quaternion)
+				# time.sleep(tau)
+				if not result:
+					torques_Exceeded = True
+					# self.reset()
 
-		if self.enable_arm:
-			if use_fixed_move_time:
-				self.set_position(new_pos, False, use_quaternion, tau)
-			else:
-				self.set_position(new_pos, False, use_quaternion)
-			time.sleep(tau)
-
-		if self.enable_gripper:
-			if action[3]>0.5:
-				self.arm.open_gripper_fully()
-				time.sleep(0.2)
-			elif action[3]<-0.5:
-				self.arm.close_gripper_fully()
-				time.sleep(0.2)
+			if self.enable_gripper:
+				if action[3]>0.5:
+					self.arm.open_gripper_fully()
+					time.sleep(0.2)
+				elif action[3]<-0.5:
+					self.arm.close_gripper_fully()
+					time.sleep(0.2)
 
 		self.reward = 0
 		
-		done = False
+		
 		
 		info = {}
 		info['is_success'] = 1 if self.reward==1 else 0
 
 		obs = {}
 		obs['features'] = np.array(self.arm.get_position(), dtype=np.float32)
-		obs['pixels'] = self.render(mode='rgb_array', width=self.width, height=self.height, step_number=self.step_number)
+		if self.keep_replaying:
+			obs['pixels'] = self.replay_obs
+		else:
+			obs['pixels'] = self.render(mode='rgb_array', width=self.width, height=self.height, step_number=self.step_number)
 		print(obs['pixels'].shape)
 		self.step_number += 1
+
+		if torques_Exceeded:
+			#done = True
+			self.keep_replaying = True
+			self.replay_obs = obs['pixels']
+			#obs['pixels'] = np.zeros(obs['pixels'].shape) Here i should keep the old image and keep replaying it until truncation to punish torque exceeding
 
 		if self.execute_step_wise:
 			# display the newly obtained rendered image in a window and wait for user input2
@@ -213,7 +239,7 @@ class FrankaFlipEnv(franka_env.FrankaEnv):
 		#y = (pos[1] + self.arm.zero[1])*100
 		#z = (pos[2] + self.arm.zero[2])*100
 		#self.arm.arm.set_position(x=x, y=y, z=z, roll=pos[3], pitch=pos[4], yaw=pos[5], wait=wait)
-		self.arm.set_position(pos=pos, wait=wait, use_pitch=True, use_roll=True, use_yaw=True, use_quaternion=use_quaternion, tau=tau)
+		return self.arm.set_position(pos=pos, wait=wait, use_pitch=True, use_roll=True, use_yaw=True, use_quaternion=use_quaternion, tau=tau)
 
 	def limit_pos(self, pos):
 		if pos[2] <= self.z_pos_limit:

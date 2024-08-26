@@ -11,15 +11,15 @@ name: 'frankagym'
 frame_stack: 1
 action_repeat: 1
 discount: 0.99
-hidden_dim: 1024
+hidden_dim: 512 #1024
 
 # train settings
 num_train_frames: 2010
-num_seed_frames: 260
+num_seed_frames: 26 # 260 (has to be at least twice the episode length)
 
 # eval
-eval_every_frames: 2000
-num_eval_episodes: 5
+eval_every_frames: 200 # 2000
+num_eval_episodes: 1
 
 # snapshot
 save_snapshot: true
@@ -44,6 +44,6 @@ task_make_fn:
   keep_gripper_closed: ${keep_gripper_closed}
   use_real_robot: true
   use_external_robot_system: True
-  external_ip_address: "localhost"
+  external_ip_address: "130.149.82.15" # 130.149.82.67"
   execute_step_wise: false
   qHome: ${qHome}
